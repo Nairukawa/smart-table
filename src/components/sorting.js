@@ -1,9 +1,7 @@
-import { sortMap } from "../lib/utils.js";
-
 export function initSorting(columns) {
-    return (data, state, action) => {
+    return (query, state, action) => {
         let field = null;
-        let order = 'none';
+        let order = "none";
 
         // @todo: #3.1 — обработать действия сортировки
         if (action) {
@@ -13,8 +11,8 @@ export function initSorting(columns) {
         }
 
         // @todo: #3.3 — применить выбранный режим сортировки при перерисовках
-        columns.forEach(column => {
-            if (column.dataset.value !== 'none') {
+        columns.forEach((column) => {
+            if (column.dataset.value !== "none") {
                 field = column.dataset.field;
                 order = column.dataset.value;
             }
@@ -22,27 +20,16 @@ export function initSorting(columns) {
 
         // @todo: #3.2 — сбросить состояние других кнопок сортировки
         if (action) {
-            columns.forEach(column => {
+            columns.forEach((column) => {
                 if (column.dataset.field !== action.dataset.field) {
-                    column.dataset.value = 'none';
+                    column.dataset.value = "none";
                 }
             });
         }
 
-        // Применяем сортировку только если выбрано поле и направление
-        if (field && order !== 'none') {
-            return [...data].sort((a, b) => {
-                const aValue = a[field];
-                const bValue = b[field];
-                
-                if (order === 'asc') {
-                    return aValue > bValue ? 1 : -1;
-                } else {
-                    return aValue < bValue ? 1 : -1;
-                }
-            });
-        }
+        const sort =
+            field && order !== "none" ? `${field}:${order}` : null;
 
-        return data;
+        return sort ? Object.assign({}, query, { sort }) : query;
     };
 }

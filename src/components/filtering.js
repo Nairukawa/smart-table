@@ -1,21 +1,20 @@
-import { createComparison } from "../lib/utils.js";
 const defaultRules = [/* правила из utils */];
 
 export function initFiltering(elements, indexes) {
-    return (data, state, action) => {
-        // @todo: #4.1 — заполнить select опциями
-        Object.keys(indexes).forEach(elementName => {
-            elements[elementName].append(
-                ...Object.values(indexes[elementName]).map(name => {
-                    const option = document.createElement('option');
-                    option.value = name;
-                    option.textContent = name;
-                    return option;
-                })
-            );
+    
+    const updateIndexes = (indexes) => {
+        Object.keys(indexes).forEach((elementName) => {
+            elements[elementName].append(...Object.values(indexes[elementName]).map(name => {
+                const el = document.createElement('option');
+                el.textContent = name;
+                el.value = name;
+                return el;
+            }));
         });
+    };
 
-        // @todo: #4.2 — очистка полей (опционально)
+    const applyFiltering = (query, state, action) => {
+        
         if (action?.name === 'clear') {
             const input = action.parentElement.querySelector('input');
             if (input) {
@@ -24,10 +23,25 @@ export function initFiltering(elements, indexes) {
             }
         }
 
-        // @todo: #4.3 — функция сравнения
+        // #4.5 — отфильтровать данные, используя компаратор
         const compare = createComparison(defaultRules);
+        const filter = {};
+        Object.keys(elements).forEach(key => {
+            if (elements[key]) {
+                if (['INPUT', 'SELECT'].includes(elements[key].tagName) && elements[key].value) {
+                    filter[`filter[${elements[key].name}]`] = elements[key].value;
+                }
+            }
+        });
 
-        // @todo: #4.5 — фильтрация данных
-        return data.filter(row => compare(row, state));
+        return Object.keys(filter).length ? Object.assign({}, query, filter) : query;
+    };
+
+    
+    updateIndexes(indexes);
+
+    return {
+        updateIndexes,
+        applyFiltering
     };
 }
