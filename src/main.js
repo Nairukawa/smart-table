@@ -6,6 +6,7 @@ import { initFiltering } from './components/filtering.js';
 import { initSearching } from './components/searching.js';
 import { processFormData, collectState } from './lib/utils.js';
 
+const sourceData = window.sourceData || {};
 const API = initData(sourceData);
 
 const settings = {
@@ -15,52 +16,72 @@ const settings = {
     after: ['pagination']
 };
 
-const sampleTable = initTable(settings, (action) => render({action}));
+let sampleTable;
+let applySearching, applyFiltering, updateIndexes, applySorting, applyPagination, updatePagination;
 
-const applySearching = initSearching('search');
-const {applyFiltering, updateIndexes} = initFiltering(sampleTable.filter.elements);
-const applySorting = initSorting([
-    sampleTable.header.elements.sortByDate,
-    sampleTable.header.elements.sortByTotal
-]);
-const {applyPagination, updatePagination} = initPagination(
-    sampleTable.pagination.elements,
-    (el, page, isCurrent) => {
-        const input = el.querySelector('input');
-        const label = el.querySelector('span');
-        input.value = page;
-        input.checked = isCurrent;
-        label.textContent = page;
-        return el;
-    }
-);
+async function initializeComponents() {
+    sampleTable = initTable(settings, (action) => render({action}));
+
+    applySearching = initSearching('search');
+    const filteringResult = initFiltering(sampleTable.filter.elements);
+    applyFiltering = filteringResult.applyFiltering;
+    updateIndexes = filteringResult.updateIndexes;
+    
+    applySorting = initSorting([
+        sampleTable.header.elements.sortByDate,
+        sampleTable.header.elements.sortByTotal
+    ]);
+    
+    const paginationResult = initPagination(
+        sampleTable.pagination.elements,
+        (el, page, isCurrent) => {
+            const input = el.querySelector('input');
+            const label = el.querySelector('span');
+            if (input) input.value = page;
+            if (input) input.checked = isCurrent;
+            if (label) label.textContent = page;
+            return el;
+        }
+    );
+    applyPagination = paginationResult.applyPagination;
+    updatePagination = paginationResult.updatePagination;
+}
 
 async function render({ action } = {}) {
-    const state = collectState(sampleTable);
-    let query = {};
+    try {
+        const state = collectState(sampleTable);
+        let query = {};
 
-    // последовательность: поиск → фильтр → сортировка → пагинация
-    query = applySearching(query, state, action);
-    query = applyFiltering(query, state, action);
-    query = applySorting(query, state, action);
-    query = applyPagination(query, state, action);
+        query = applySearching(query, state, action);
+        query = applyFiltering(query, state, action);
+        query = applySorting(query, state, action);
+        query = applyPagination(query, state, action);
 
-    const { total, items } = await API.getRecords(query);
-
-    updatePagination(total, query);
-    sampleTable.render(items);
+        const { total, items } = await API.getRecords(query);
+        updatePagination(total, query);
+        sampleTable.render(items);
+    } catch (error) {
+        console.error('Render error:', error);
+    }
 }
 
 async function init() {
-    const indexes = await API.getIndexes();
-
-    updateIndexes(sampleTable.filter.elements, {
-        searchBySeller: indexes.sellers,
-    });
+    try {
+        const indexes = await API.getIndexes();
+        updateIndexes(sampleTable.filter.elements, {
+            searchBySeller: indexes.sellers,
+        });
+    } catch (error) {
+        console.error('Init error:', error);
+    }
 }
 
-// ✅ Запуск
-init().then(() => render());
+document.addEventListener('DOMContentLoaded', async () => {
+    await initializeComponents();
+    await init();
+    render();
+});
+
 
     
     // @todo: использование (последовательность: поиск → фильтр → сортировка → пагинация)
