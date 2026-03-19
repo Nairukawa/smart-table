@@ -4,6 +4,7 @@ import { initPagination } from './components/pagination.js';
 import { initSorting } from './components/sorting.js';
 import { initFiltering } from './components/filtering.js';
 import { initSearching } from './components/searching.js';
+import './style.css';
 
 const API = initData();
 
@@ -48,6 +49,8 @@ function collectState(table) {
 
 document.addEventListener('DOMContentLoaded', () => {
     sampleTable = initTable(settings, (action) => render(action));
+
+    document.body.append(sampleTable.container);
 
     applySearching = initSearching('search');
 
