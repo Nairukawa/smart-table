@@ -1,45 +1,65 @@
 export function initPagination(elements, createPage) {
     const { pages, fromRow, toRow, totalRows } = elements;
-    
-    return (data, state, action) => {
-        // @todo: #2.1
-        const rowsPerPage = state.rowsPerPage;
-        const pageCount = Math.ceil(data.length / rowsPerPage);
-        let page = state.page;
 
+    let pageCount = 1;
 
-        // @todo: #2.2
-        const skip = (page - 1) * rowsPerPage;
-        const visibleData = data.slice(skip, skip + rowsPerPage);
+    const pageTemplate = pages.firstElementChild.cloneNode(true);
+    pages.firstElementChild.remove();
 
-        // @todo: #2.3
-        const pageTemplate = pages.firstElementChild.cloneNode(true);
-        pages.firstElementChild.remove();
+    const applyPagination = (query, state, action) => {
+        const limit = Number(state.rowsPerPage) || 10;
+        let page = Number(state.page) || 1;
 
+        if (action?.name === 'first') {
+            page = 1;
+        }
 
-const applyPagination = (query, state, action) => {
-    const limit = state.rowsPerPage;
-    let page = state.page;
+        if (action?.name === 'prev') {
+            page = Math.max(1, page - 1);
+        }
 
-    // переносим код, который делали под @todo: #2.6
+        if (action?.name === 'next') {
+            page = Math.min(pageCount, page + 1);
+        }
 
-    return Object.assign({}, query, { // добавим параметры к query, но не изменяем исходный объект
-        limit,
-        page
-    });
-}
+        if (action?.name === 'last') {
+            page = pageCount;
+        }
 
-const updatePagination = (total, { page, limit }) => {
-    pageCount = Math.ceil(total / limit);
+        if (action?.name === 'page' && action.value) {
+            page = Number(action.value) || 1;
+        }
 
-    // переносим код, который делали под @todo: #2.4
-    // переносим код, который делали под @todo: #2.5 (обратите внимание, что rowsPerPage заменена на limit)
-}
+        return Object.assign({}, query, {
+            limit,
+            page
+        });
+    };
 
-return {
-    updatePagination,
-    applyPagination
-};
+    const updatePagination = (total, { page = 1, limit = 10 }) => {
+        pageCount = Math.max(1, Math.ceil(total / limit));
 
+        pages.innerHTML = '';
+
+        for (let i = 1; i <= pageCount; i++) {
+            const pageElement = createPage(
+                pageTemplate.cloneNode(true),
+                i,
+                i === Number(page)
+            );
+            pages.append(pageElement);
+        }
+
+        const from = total === 0 ? 0 : (Number(page) - 1) * limit + 1;
+        const to = total === 0 ? 0 : Math.min(Number(page) * limit, total);
+
+        fromRow.textContent = from;
+        toRow.textContent = to;
+        totalRows.textContent = total;
+    };
+
+    return {
+        updatePagination,
+        applyPagination
     };
 }

@@ -4,10 +4,8 @@ import { initPagination } from './components/pagination.js';
 import { initSorting } from './components/sorting.js';
 import { initFiltering } from './components/filtering.js';
 import { initSearching } from './components/searching.js';
-import { processFormData, collectState } from './lib/utils.js';
 
-const sourceData = window.sourceData || {};
-const API = initData(sourceData);
+const API = initData();
 
 const settings = {
     tableTemplate: 'table',
@@ -17,76 +15,95 @@ const settings = {
 };
 
 let sampleTable;
-let applySearching, applyFiltering, updateIndexes, applySorting, applyPagination, updatePagination;
+let applySearching;
+let applyFiltering;
+let updateIndexes;
+let applySorting;
+let applyPagination;
+let updatePagination;
 
-async function initializeComponents() {
-    sampleTable = initTable(settings, (action) => render({action}));
+function collectState(table) {
+    const state = {};
+
+    if (!table?.container) {
+        return state;
+    }
+
+    table.container.querySelectorAll('input, select').forEach((el) => {
+        const key = el.name || el.dataset.field;
+        if (key) {
+            state[key] = el.value;
+        }
+    });
+
+    const pageInput = table.container.querySelector('input[type="radio"]:checked');
+    if (pageInput) {
+        state.page = parseInt(pageInput.value, 10) || 1;
+    }
+
+    state.rowsPerPage = 10;
+
+    return state;
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+    sampleTable = initTable(settings, (action) => render(action));
 
     applySearching = initSearching('search');
+
     const filteringResult = initFiltering(sampleTable.filter.elements);
     applyFiltering = filteringResult.applyFiltering;
     updateIndexes = filteringResult.updateIndexes;
-    
+
     applySorting = initSorting([
         sampleTable.header.elements.sortByDate,
         sampleTable.header.elements.sortByTotal
     ]);
-    
+
     const paginationResult = initPagination(
         sampleTable.pagination.elements,
         (el, page, isCurrent) => {
             const input = el.querySelector('input');
             const label = el.querySelector('span');
-            if (input) input.value = page;
-            if (input) input.checked = isCurrent;
-            if (label) label.textContent = page;
+
+            if (input) {
+                input.value = page;
+                input.checked = isCurrent;
+            }
+
+            if (label) {
+                label.textContent = page;
+            }
+
             return el;
         }
     );
+
     applyPagination = paginationResult.applyPagination;
     updatePagination = paginationResult.updatePagination;
-}
 
-async function render({ action } = {}) {
-    try {
-        const state = collectState(sampleTable);
-        let query = {};
+    init().then(render);
+});
 
-        query = applySearching(query, state, action);
-        query = applyFiltering(query, state, action);
-        query = applySorting(query, state, action);
-        query = applyPagination(query, state, action);
+async function render(action) {
+    const state = collectState(sampleTable);
+    let query = {};
 
-        const { total, items } = await API.getRecords(query);
-        updatePagination(total, query);
-        sampleTable.render(items);
-    } catch (error) {
-        console.error('Render error:', error);
-    }
+    query = applySearching(query, state, action);
+    query = applyFiltering(query, state, action);
+    query = applySorting(query, state, action);
+    query = applyPagination(query, state, action);
+
+    const { total, items } = await API.getRecords(query);
+
+    updatePagination(total, query);
+    sampleTable.render(items);
 }
 
 async function init() {
-    try {
-        const indexes = await API.getIndexes();
-        updateIndexes(sampleTable.filter.elements, {
-            searchBySeller: indexes.sellers,
-        });
-    } catch (error) {
-        console.error('Init error:', error);
-    }
+    const indexes = await API.getIndexes();
+
+    updateIndexes(sampleTable.filter.elements, {
+        searchBySeller: indexes.sellers
+    });
 }
-
-document.addEventListener('DOMContentLoaded', async () => {
-    await initializeComponents();
-    await init();
-    render();
-});
-
-
-    
-    // @todo: использование (последовательность: поиск → фильтр → сортировка → пагинация)
-    // result = applySearching(result, state, action);
-    // result = applyFiltering(result, state, action);
-    // result = applySorting(result, state, action);
-    // result = applyPagination(result, state, action);
-
