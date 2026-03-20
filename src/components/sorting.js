@@ -9,12 +9,12 @@ export function initSorting(columns) {
         let field = null;
         let order = 'none';
 
-        if (action && action.dataset && action.dataset.field) {
+        if (action?.name === 'sort' && action.dataset?.field) {
             const current = action.dataset.value || 'none';
             const next = sortMap[current] || 'none';
 
             columns.forEach((column) => {
-                if (!column || !column.dataset) return;
+                if (!column?.dataset) return;
 
                 if (column.dataset.field === action.dataset.field) {
                     column.dataset.value = next;
@@ -26,7 +26,7 @@ export function initSorting(columns) {
             });
         } else {
             columns.forEach((column) => {
-                if (!column || !column.dataset) return;
+                if (!column?.dataset) return;
 
                 if (column.dataset.value && column.dataset.value !== 'none') {
                     field = column.dataset.field;
@@ -35,9 +35,10 @@ export function initSorting(columns) {
             });
         }
 
-        const sort = field && order !== 'none'
-            ? `${field}:${order}`
-            : null;
+        const sort =
+            field && order !== 'none'
+                ? `${field}:${order}`
+                : null;
 
         return sort
             ? Object.assign({}, query, { sort })

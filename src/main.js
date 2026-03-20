@@ -32,17 +32,20 @@ function collectState(table) {
 
     table.container.querySelectorAll('input, select').forEach((el) => {
         const key = el.name || el.dataset.field;
-        if (key) {
-            state[key] = el.value;
+        if (!key) return;
+
+        if (el.type === 'radio') {
+            if (el.checked) {
+                state[key] = el.value;
+            }
+            return;
         }
+
+        state[key] = el.value;
     });
 
-    const pageInput = table.container.querySelector('input[type="radio"]:checked');
-    if (pageInput) {
-        state.page = parseInt(pageInput.value, 10) || 1;
-    }
-
-    state.rowsPerPage = 10;
+    state.page = Number(state.page) || 1;
+    state.rowsPerPage = Number(state.rowsPerPage) || 10;
 
     return state;
 }
@@ -50,7 +53,8 @@ function collectState(table) {
 document.addEventListener('DOMContentLoaded', () => {
     sampleTable = initTable(settings, (action) => render(action));
 
-    document.body.append(sampleTable.container);
+    const app = document.querySelector('#app');
+    app.append(sampleTable.container);
 
     applySearching = initSearching('search');
 
@@ -85,7 +89,7 @@ document.addEventListener('DOMContentLoaded', () => {
     applyPagination = paginationResult.applyPagination;
     updatePagination = paginationResult.updatePagination;
 
-    init().then(render);
+    init().then(() => render());
 });
 
 async function render(action) {

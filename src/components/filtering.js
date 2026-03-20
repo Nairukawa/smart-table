@@ -1,9 +1,10 @@
 export function initFiltering(elements) {
-    const updateIndexes = (elements, indexes) => {
+    const updateIndexes = (elementsMap, indexes) => {
         Object.keys(indexes).forEach((elementName) => {
-            if (!elements[elementName]) return;
+            const element = elementsMap[elementName];
+            if (!element) return;
 
-            elements[elementName].append(
+            element.append(
                 ...Object.values(indexes[elementName]).map((name) => {
                     const el = document.createElement('option');
                     el.textContent = name;
@@ -17,6 +18,7 @@ export function initFiltering(elements) {
     const applyFiltering = (query, state, action) => {
         if (action?.name === 'clear') {
             const field = action.dataset.field;
+
             if (field && state[field] !== undefined) {
                 state[field] = '';
             }
@@ -33,7 +35,7 @@ export function initFiltering(elements) {
             const element = elements[key];
             if (!element) return;
 
-            if (['INPUT', 'SELECT'].includes(element.tagName) && element.value) {
+            if (['INPUT', 'SELECT'].includes(element.tagName) && element.name && element.value) {
                 filter[`filter[${element.name}]`] = element.value;
             }
         });

@@ -21,13 +21,6 @@ function cloneTemplate(name) {
     return { container, elements };
 }
 
-/**
- * Инициализирует таблицу и вызывает коллбэк при любых изменениях и нажатиях на кнопки
- *
- * @param {Object} settings
- * @param {(action: HTMLElement | undefined) => void} onAction
- * @returns {{container: Node, elements: *, render: Function}}
- */
 export function initTable(settings, onAction) {
     const { tableTemplate, rowTemplate, before = [], after = [] } = settings;
     const root = cloneTemplate(tableTemplate);
@@ -40,6 +33,10 @@ export function initTable(settings, onAction) {
     after.forEach((subName) => {
         root[subName] = cloneTemplate(subName);
         root.container.append(root[subName].container);
+    });
+
+    root.container.addEventListener('input', (e) => {
+        onAction(e.target);
     });
 
     root.container.addEventListener('change', (e) => {
@@ -68,7 +65,9 @@ export function initTable(settings, onAction) {
             return row.container;
         });
 
-        root.elements.rows.replaceChildren(...nextRows);
+        if (root.elements.rows) {
+            root.elements.rows.replaceChildren(...nextRows);
+        }
     };
 
     return {
