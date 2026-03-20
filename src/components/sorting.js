@@ -1,47 +1,49 @@
 const sortMap = {
-    none: 'asc',
-    asc: 'desc',
-    desc: 'none'
+    none: 'up',
+    up: 'down',
+    down: 'none'
 };
 
 export function initSorting(columns) {
+    let activeField = null;
+    let activeOrder = 'none';
+
+    const syncButtons = () => {
+        columns.forEach((column) => {
+            if (!column?.dataset) return;
+
+            if (column.dataset.field === activeField) {
+                column.dataset.value = activeOrder;
+            } else {
+                column.dataset.value = 'none';
+            }
+        });
+    };
+
     return (query, state, action) => {
-        let field = null;
-        let order = 'none';
-
         if (action?.name === 'sort' && action.dataset?.field) {
-            const current = action.dataset.value || 'none';
-            const next = sortMap[current] || 'none';
+            const clickedField = action.dataset.field;
 
-            columns.forEach((column) => {
-                if (!column?.dataset) return;
+            if (activeField !== clickedField) {
+                activeField = clickedField;
+                activeOrder = 'up';
+            } else {
+                activeOrder = sortMap[activeOrder] || 'none';
 
-                if (column.dataset.field === action.dataset.field) {
-                    column.dataset.value = next;
-                    field = column.dataset.field;
-                    order = next;
-                } else {
-                    column.dataset.value = 'none';
+                if (activeOrder === 'none') {
+                    activeField = null;
                 }
-            });
-        } else {
-            columns.forEach((column) => {
-                if (!column?.dataset) return;
-
-                if (column.dataset.value && column.dataset.value !== 'none') {
-                    field = column.dataset.field;
-                    order = column.dataset.value;
-                }
-            });
+            }
         }
 
-        const sort =
-            field && order !== 'none'
-                ? `${field}:${order}`
-                : null;
+        syncButtons();
 
-        return sort
-            ? Object.assign({}, query, { sort })
-            : query;
+        if (!activeField || activeOrder === 'none') {
+            return query;
+        }
+
+        return Object.assign({}, query, {
+            sort: `${activeField}:${activeOrder}`
+        });
     };
 }
